@@ -1,5 +1,7 @@
+#Регистрируйте модели здесь
+
 from django.contrib import admin
-from .models import Post
+from .models import Post, Comment #импортирован модель пост и комент
 
 @admin.register(Post)
 class PostAdmin(admin.ModelAdmin):
@@ -12,5 +14,9 @@ class PostAdmin(admin.ModelAdmin):
     ordering = ('status', 'publish')
 
 
+@admin.register(Comment)
+class CommentAdmin(admin.ModelAdmin):
+    list_display = ('name', 'email', 'post', 'created', 'active')
+    list_filter = ('active', 'created', 'updated')
 
-# Register your models here.
+

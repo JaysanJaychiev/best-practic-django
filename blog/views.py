@@ -1,9 +1,14 @@
+# render для возврата response html
+#get_object_or_404 возвратить или показать баг
 from django.shortcuts import render, get_object_or_404
-from .models import Post
+#встроенный пагинтор
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.core.mail import send_mail #импорт для отправки имейлов
 from django.views.generic import ListView
-from .forms import EmailPostForm
-from django.core.mail import send_mail
+
+from .models import Post, Comment #импортируем модели пост и комметы
+from .forms import EmailPostForm, CommentForm #импортиеруем формы емайла и комента
+
 
 
 class PostListView(ListView):
@@ -53,6 +58,28 @@ def post_list(request):
 
 
 
-def post_detail(request, year, month, day, post):
+def post_detail(request, year, month, day, post): #эта функция для отображения статьи
     post = get_object_or_404(Post, slug=post, status='published', publish__year=year, publish__month=month, publish__day=day)
-    return render(request, 'blog/post/detail.html', {'post': post})
+
+    
+    comments = post.comments.filter(active=True)#Для получения всех активных коментриев QuerySet
+    new_comment = None #для сохранения созданного коментария пока что None
+    if request.method == 'POST':
+        # Пользователь отправил комантарий.
+        comment_form = CommentForm(data=request.POST)#ComentForm Для инициализации формы при GET-запросе, если получаем POST запрос то заполняем форму данными и валидируем с помошью is_valid() если форма заполнена не корректно отображаем html шаблон
+        if comment_form.is_valid():
+            #если все поля успешно прошли валидацию создаем new-comment
+            #создаем коментайрий, но пока не сохраняем в базе данных
+            new_comment = comment_form.save(commit=False)#commit=False обьект создан но не сохранен в Базе Данных
+            #привязываем комантарий к текущей статье.
+            new_comment.post = post
+            
+            #Сохраняем комаентарий в базе данных.
+            new_comment.save()
+        else:
+            comment_form = CommentForm()
+        return render(request, 'blog/post/detail.html', {'post': post,
+                                                        'comments': comments,
+                                                        'new_comment': new_comment,
+                                                        'comment-form': comment_form})
+
